@@ -1,0 +1,24 @@
+<div class="menu-container">
+  {% if menu %}
+    <div class="menu-title" id="mainMenuToggle">
+      {{ menu.name }}
+      <span class="arrow">▶</span>
+    </div>
+  {% endif %}
+  <div class="menu-items">
+    {% if menu_tree %}
+    <ul class="menu-list">
+        {% for node in menu_tree %}
+        <li class="menu-item {% if node.is_active %}active{% endif %}">
+            <a href="{{ node.item.url }}" {% if node.is_active %}class="active"{% endif %}>
+                {{ node.item.name }}
+            </a>
+            {% if node.children %}
+                {% include "app/draw_menu.html" with menu_tree=node.children %}
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</div>
