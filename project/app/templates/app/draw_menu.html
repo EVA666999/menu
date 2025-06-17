@@ -1,20 +1,93 @@
-<div class="menu-container">
+{% load static %}
+<div class="menu-container" data-menu-id="{{ menu.id|default:'submenu' }}">
   {% if menu %}
-    <div class="menu-title" id="mainMenuToggle">
+    <div class="menu-title">
       {{ menu.name }}
       <span class="arrow">▶</span>
     </div>
   {% endif %}
-  <div class="menu-items">
+  <div class="menu-items" {% if not menu %}style="display: block;"{% endif %}>
     {% if menu_tree %}
     <ul class="menu-list">
         {% for node in menu_tree %}
-        <li class="menu-item {% if node.is_active %}active{% endif %}">
-            <a href="{{ node.item.url }}" {% if node.is_active %}class="active"{% endif %}>
-                {{ node.item.name }}
-            </a>
+        <li class="menu-item {% if node.is_active %}active{% endif %}" 
+            data-item-id="{{ node.item.id }}"
+            data-parent-id="{{ node.item.parent.id|default:'None' }}"
+            data-has-children="{% if node.children %}true{% else %}false{% endif %}"
+            data-depth="{{ node.depth }}">
+            <div class="menu-item-header">
+                {% if node.children %}
+                <span class="arrow">▶</span>
+                {% endif %}
+                <a href="{{ node.item.url }}" {% if node.is_active %}class="active"{% endif %}>
+                    {{ node.item.name }}
+                </a>
+            </div>
             {% if node.children %}
-                {% include "app/draw_menu.html" with menu_tree=node.children %}
+            <div class="submenu">
+                <ul class="menu-list">
+                    {% for child in node.children %}
+                    <li class="menu-item {% if child.is_active %}active{% endif %}" 
+                        data-item-id="{{ child.item.id }}"
+                        data-parent-id="{{ child.item.parent.id|default:'None' }}"
+                        data-has-children="{% if child.children %}true{% else %}false{% endif %}"
+                        data-depth="{{ child.depth }}">
+                        <div class="menu-item-header">
+                            {% if child.children %}
+                            <span class="arrow">▶</span>
+                            {% endif %}
+                            <a href="{{ child.item.url }}" {% if child.is_active %}class="active"{% endif %}>
+                                {{ child.item.name }}
+                            </a>
+                        </div>
+                        {% if child.children %}
+                        <div class="submenu">
+                            <ul class="menu-list">
+                                {% for grandchild in child.children %}
+                                <li class="menu-item {% if grandchild.is_active %}active{% endif %}" 
+                                    data-item-id="{{ grandchild.item.id }}"
+                                    data-parent-id="{{ grandchild.item.parent.id|default:'None' }}"
+                                    data-has-children="{% if grandchild.children %}true{% else %}false{% endif %}"
+                                    data-depth="{{ grandchild.depth }}">
+                                    <div class="menu-item-header">
+                                        {% if grandchild.children %}
+                                        <span class="arrow">▶</span>
+                                        {% endif %}
+                                        <a href="{{ grandchild.item.url }}" {% if grandchild.is_active %}class="active"{% endif %}>
+                                            {{ grandchild.item.name }}
+                                        </a>
+                                    </div>
+                                    {% if grandchild.children %}
+                                    <div class="submenu">
+                                        <ul class="menu-list">
+                                            {% for great_grandchild in grandchild.children %}
+                                            <li class="menu-item {% if great_grandchild.is_active %}active{% endif %}" 
+                                                data-item-id="{{ great_grandchild.item.id }}"
+                                                data-parent-id="{{ great_grandchild.item.parent.id|default:'None' }}"
+                                                data-has-children="{% if great_grandchild.children %}true{% else %}false{% endif %}"
+                                                data-depth="{{ great_grandchild.depth }}">
+                                                <div class="menu-item-header">
+                                                    {% if great_grandchild.children %}
+                                                    <span class="arrow">▶</span>
+                                                    {% endif %}
+                                                    <a href="{{ great_grandchild.item.url }}" {% if great_grandchild.is_active %}class="active"{% endif %}>
+                                                        {{ great_grandchild.item.name }}
+                                                    </a>
+                                                </div>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
             {% endif %}
         </li>
         {% endfor %}
@@ -22,3 +95,139 @@
     {% endif %}
   </div>
 </div>
+
+<style>
+.menu-container {
+    margin: 10px 0;
+}
+
+.menu-title {
+    cursor: pointer;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.menu-items {
+    display: none;
+    margin-left: 20px;
+}
+
+.menu-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.menu-item {
+    margin: 5px 0;
+}
+
+.menu-item-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.arrow {
+    transition: transform 0.3s ease;
+}
+
+.arrow.expanded {
+    transform: rotate(90deg);
+}
+
+.submenu {
+    display: none;
+    margin-left: 20px;
+}
+
+.menu-item.active > .submenu {
+    display: block;
+}
+
+.menu-item.active > .menu-item-header .arrow {
+    transform: rotate(90deg);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function expandParents(element) {
+        const menuItem = element.closest('.menu-item');
+        if (!menuItem) return;
+        
+        const submenu = menuItem.querySelector('.submenu');
+        const arrow = menuItem.querySelector('.arrow');
+        if (submenu) {
+            submenu.style.display = 'block';
+            if (arrow) arrow.classList.add('expanded');
+        }
+        
+        const parentMenuItem = menuItem.parentElement.closest('.menu-item');
+        if (parentMenuItem) {
+            expandParents(parentMenuItem);
+        }
+    }
+
+    function handleMenuItemClick(event) {
+        const header = event.target.closest('.menu-item-header');
+        if (!header) return;
+        
+        if (event.target.tagName === 'A') return;
+        
+        const menuItem = header.closest('.menu-item');
+        const submenu = menuItem.querySelector('.submenu');
+        const arrow = header.querySelector('.arrow');
+        
+        if (submenu) {
+            const isExpanded = submenu.style.display === 'block';
+            
+            const siblings = menuItem.parentElement.querySelectorAll('.menu-item');
+            siblings.forEach(sibling => {
+                if (sibling !== menuItem) {
+                    const siblingSubmenu = sibling.querySelector('.submenu');
+                    const siblingArrow = sibling.querySelector('.arrow');
+                    if (siblingSubmenu) {
+                        siblingSubmenu.style.display = 'none';
+                        if (siblingArrow) siblingArrow.classList.remove('expanded');
+                    }
+                }
+            });
+            
+            submenu.style.display = isExpanded ? 'none' : 'block';
+            if (arrow) arrow.classList.toggle('expanded', !isExpanded);
+        }
+    }
+
+    function handleMenuTitleClick(event) {
+        const title = event.target.closest('.menu-title');
+        if (!title) return;
+        
+        const menuContainer = title.closest('.menu-container');
+        const menuItems = menuContainer.querySelector('.menu-items');
+        const arrow = title.querySelector('.arrow');
+        
+        if (menuItems.style.display === 'block') {
+            menuItems.style.display = 'none';
+            arrow.classList.remove('expanded');
+        } else {
+            menuItems.style.display = 'block';
+            arrow.classList.add('expanded');
+        }
+    }
+
+    document.addEventListener('click', function(event) {
+        handleMenuTitleClick(event);
+        handleMenuItemClick(event);
+    });
+
+    document.querySelectorAll('.menu-item.active').forEach(item => {
+        expandParents(item);
+    });
+});
+</script>

@@ -1,5 +1,7 @@
 from django import template
-from ..views import render_menu
+from django.template.loader import render_to_string
+from ..models import Menu
+from ..views import build_menu_tree
 
 register = template.Library()
 
@@ -16,5 +18,14 @@ def draw_menu(context, menu_name):
     Returns:
         HTML-код отрендеренного меню
     """
-    request = context['request']
-    return render_menu(menu_name, request) 
+    try:
+        menu = Menu.objects.get(name=menu_name)
+        items = list(menu.items.all())
+        menu_tree = build_menu_tree(items, context['request'].path)
+        return render_to_string('app/draw_menu.html', {
+            'menu': menu,
+            'menu_tree': menu_tree,
+            'request': context['request']
+        })
+    except Menu.DoesNotExist:
+        return '' 
